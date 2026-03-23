@@ -1,0 +1,12 @@
+.env
+credentials/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+assets/portfolio.pdf
