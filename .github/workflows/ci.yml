@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        env:
+          OPENAI_API_KEY: test-key
+          GOOGLE_DELEGATED_EMAIL: test@example.com
+          GOOGLE_PUBSUB_TOPIC: projects/test/topics/test
+          GOOGLE_SHEET_ID: test-sheet-id
+          TELEGRAM_BOT_TOKEN: "123456:ABC-DEF"
+          TELEGRAM_MANAGER_CHAT_ID: "123456789"
+          BUSINESS_CONFIG_PATH: tests/fixtures/test_business.yaml
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+          REDIS_URL: "redis://localhost:6379/0"
+        run: pytest tests/ -v --tb=short
+
+      - name: Check imports
+        run: python -c "from app.main import app; print('OK')"
+        env:
+          OPENAI_API_KEY: test-key
+          GOOGLE_DELEGATED_EMAIL: test@example.com
+          GOOGLE_PUBSUB_TOPIC: projects/test/topics/test
+          GOOGLE_SHEET_ID: test-sheet-id
+          TELEGRAM_BOT_TOKEN: "123456:ABC-DEF"
+          TELEGRAM_MANAGER_CHAT_ID: "123456789"
+          BUSINESS_CONFIG_PATH: tests/fixtures/test_business.yaml
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check app/ tests/ --select E,F,W

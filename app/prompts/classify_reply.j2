@@ -1,0 +1,12 @@
+Классифицируй следующий ответ клиента на холодное письмо о продукции/услугах компании «{{ business.name }}» ({{ products.summary }}).
+
+Категории:
+{% for cat in categories %}
+- {{ cat.id }}: {{ cat.description }}
+{% endfor %}
+
+Текст письма:
+{{ email_body }}
+
+Ответь строго в JSON формате:
+{"category": "...", "confidence": 0.0, "reasoning": "..."}

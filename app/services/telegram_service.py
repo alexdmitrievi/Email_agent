@@ -38,8 +38,11 @@ async def notify_manager_daily_summary(summary: str) -> None:
 
 
 async def set_webhook(url: str) -> None:
-    """Set the Telegram bot webhook URL."""
-    result = await bot.set_webhook(url=url)
+    """Set the Telegram bot webhook URL with optional secret token."""
+    kwargs = {"url": url}
+    if settings.TELEGRAM_WEBHOOK_SECRET:
+        kwargs["secret_token"] = settings.TELEGRAM_WEBHOOK_SECRET
+    result = await bot.set_webhook(**kwargs)
     logger.info("Telegram webhook set: %s (result: %s)", url, result)
 
 

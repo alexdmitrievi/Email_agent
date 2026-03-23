@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   agent:
     build: .
@@ -8,4 +9,56 @@ services:
     volumes:
       - ./credentials:/app/credentials:ro
       - ./assets:/app/assets:ro
+      - ./configs:/app/configs:ro
+      - agent-data:/app/data
+    environment:
+      - BUSINESS_CONFIG_PATH=configs/business.yaml
+      - DATABASE_URL=postgresql+asyncpg://agent:agent@postgres:5432/email_agent
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
     restart: unless-stopped
+
+  worker:
+    build: .
+    command: arq app.workers.tasks.WorkerSettings
+    env_file: .env
+    volumes:
+      - ./credentials:/app/credentials:ro
+      - ./assets:/app/assets:ro
+      - ./configs:/app/configs:ro
+      - agent-data:/app/data
+    environment:
+      - BUSINESS_CONFIG_PATH=configs/business.yaml
+      - DATABASE_URL=postgresql+asyncpg://agent:agent@postgres:5432/email_agent
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: agent
+      POSTGRES_DB: email_agent
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  agent-data:

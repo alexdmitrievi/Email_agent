@@ -1,0 +1,87 @@
+# Minimal valid config for unit tests
+business:
+  name: "Test Company"
+  niche: "test"
+  language: "ru"
+  website: "https://test.com"
+  phone: "+7-000-000-00-00"
+  description: "A test company for unit tests"
+
+products:
+  summary: "Test products and services"
+  details:
+    - name: "Product A"
+      description: "First test product"
+    - name: "Product B"
+      description: "Second test product"
+  pricing_policy: "Contact us for pricing."
+
+funnel:
+  stages:
+    - { id: "NEW_REPLY", label: "New Reply", description: "First response" }
+    - { id: "INTERESTED", label: "Interested", description: "Shows interest" }
+    - { id: "MATERIALS_SENT", label: "Materials Sent", description: "Sent materials", attachment: "assets/test.pdf" }
+    - { id: "IN_DISCUSSION", label: "Discussion", description: "Active discussion" }
+    - { id: "HANDOFF_TO_MANAGER", label: "Handoff", description: "Ready for manager" }
+    - { id: "ORDER", label: "Order", description: "Deal closed" }
+    - { id: "NOT_INTERESTED", label: "Not Interested", description: "Declined" }
+    - { id: "ARCHIVED", label: "Archived", description: "Spam/irrelevant" }
+  categories:
+    - { id: "INTERESTED", description: "Shows interest" }
+    - { id: "NOT_INTERESTED", description: "Declines" }
+    - { id: "SPAM", description: "Auto-reply or irrelevant" }
+    - { id: "OUT_OF_OFFICE", description: "Out of office" }
+    - { id: "QUESTION", description: "Asks a specific question" }
+    - { id: "READY_TO_ORDER", description: "Wants to buy or meet" }
+  transitions:
+    - { from: "NEW_REPLY", on: "INTERESTED", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "QUESTION", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_REPLY", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_REPLY", on: "OUT_OF_OFFICE", to: "NEW_REPLY", action: "ignore" }
+    - { from: "NEW_REPLY", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "INTERESTED", on: "INTERESTED", to: "MATERIALS_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "QUESTION", to: "MATERIALS_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "INTERESTED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "MATERIALS_SENT", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "MATERIALS_SENT", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "MATERIALS_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "MATERIALS_SENT", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "IN_DISCUSSION", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "IN_DISCUSSION", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+  follow_up_eligible_stages:
+    - "MATERIALS_SENT"
+    - "IN_DISCUSSION"
+
+follow_ups:
+  delay_days: 3
+  max_count: 2
+
+stage_instructions:
+  NEW_REPLY: "Thank them for replying. Ask a clarifying question."
+  INTERESTED: "Offer to send materials. Ask what interests them most."
+  MATERIALS_SENT: "Ask if they reviewed the materials. Offer to answer questions."
+  IN_DISCUSSION: "Continue discussion. After 3+ exchanges suggest Telegram: '{telegram_link}'."
+  HANDOFF_TO_MANAGER: "Confirm manager will reach out. Ask preferred channel."
+
+handoff:
+  telegram_keywords: ["заказ", "купить", "менеджер", "встреча", "позвонить", "оплата"]
+
+tone:
+  formality: "semiformal"
+  address: "Вы"
+  max_sentences_email: 5
+  max_sentences_telegram: 3
+  sign_off_style: "professional"
+
+telegram:
+  welcome_message: "Здравствуйте, {first_name}! Я — помощник «{company_name}»."
+  handoff_confirmation: "Сейчас подключу менеджера!"
+
+calendar:
+  enabled: false
+
+not_interested_reply: "Спасибо за ответ! Если понадобится — мы здесь."

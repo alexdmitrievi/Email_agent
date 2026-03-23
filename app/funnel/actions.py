@@ -1,12 +1,18 @@
+"""
+Config-driven funnel actions.
+
+All hardcoded text is replaced by values from business config.
+"""
+
 import logging
 from datetime import datetime, timezone
 
 from app.config import settings
+from app.config_loader import get_config
+from app.funnel.stages import get_stage_attachment
 from app.services import ai_agent, gmail_service, sheets_service
 
 logger = logging.getLogger(__name__)
-
-PORTFOLIO_PATH = "assets/portfolio.pdf"
 
 
 async def reply_with_interest(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
@@ -28,14 +34,16 @@ async def reply_with_interest(lead: dict, parsed_msg: dict, thread_history: str,
     _update_lead_contact(lead)
 
 
-async def send_portfolio(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
-    """Send portfolio PDF with a personalized cover message."""
+async def send_materials(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
+    """Send materials/portfolio with a personalized cover message."""
     body = await ai_agent.generate_response(
-        stage="PORTFOLIO_SENT",
+        stage="MATERIALS_SENT",
         lead_info=lead,
         thread_history=thread_history,
         exchange_count=exchange_count,
     )
+    # Get attachment from the target stage config
+    attachment = get_stage_attachment("MATERIALS_SENT")
     gmail_service.send_reply(
         to=parsed_msg["from"],
         subject=parsed_msg["subject"],
@@ -43,7 +51,7 @@ async def send_portfolio(lead: dict, parsed_msg: dict, thread_history: str, exch
         thread_id=parsed_msg["threadId"],
         message_id=parsed_msg["message_id"],
         references=parsed_msg["references"],
-        attachment_path=PORTFOLIO_PATH,
+        attachment_path=attachment,
     )
     _update_lead_contact(lead)
 
@@ -69,12 +77,10 @@ async def continue_discussion(lead: dict, parsed_msg: dict, thread_history: str,
 
 async def handoff_to_manager(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
     """Notify the manager and send a confirmation to the client."""
-    # Notify manager via Telegram
     from app.services import telegram_service
 
     await telegram_service.notify_manager_handoff(lead, parsed_msg["body"])
 
-    # Reply to client
     body = await ai_agent.generate_response(
         stage="HANDOFF_TO_MANAGER",
         lead_info=lead,
@@ -93,11 +99,9 @@ async def handoff_to_manager(lead: dict, parsed_msg: dict, thread_history: str, 
 
 
 async def reply_not_interested(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
-    """Send a polite goodbye and archive the lead."""
-    body = (
-        "Спасибо за ваш ответ! Если в будущем у вас возникнет потребность в мебели, "
-        "мы всегда будем рады помочь. Хорошего дня!"
-    )
+    """Send a polite goodbye from config and archive the lead."""
+    config = get_config()
+    body = config.not_interested_reply.strip()
     gmail_service.send_reply(
         to=parsed_msg["from"],
         subject=parsed_msg["subject"],
@@ -116,6 +120,7 @@ async def ignore(lead: dict, parsed_msg: dict, thread_history: str, exchange_cou
 
 async def send_follow_up(lead: dict) -> None:
     """Send a follow-up email to a stale lead."""
+    config = get_config()
     if not lead.get("thread_id"):
         logger.warning("No thread_id for lead %s, skipping follow-up", lead["email"])
         return
@@ -170,10 +175,11 @@ def _build_thread_history(messages: list[dict]) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-# Action registry
+# Action registry — maps action names from config transitions to functions
 ACTION_MAP = {
     "reply_with_interest": reply_with_interest,
-    "send_portfolio": send_portfolio,
+    "send_materials": send_materials,
+    "send_portfolio": send_materials,  # backward-compatible alias
     "continue_discussion": continue_discussion,
     "handoff_to_manager": handoff_to_manager,
     "reply_not_interested": reply_not_interested,

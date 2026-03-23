@@ -1,34 +1,42 @@
+"""
+AI agent service — OpenAI GPT integration with config-driven Jinja2 prompts.
+"""
+
 import json
 import logging
 from pathlib import Path
 
+from jinja2 import Environment, FileSystemLoader
 from openai import AsyncOpenAI
 
 from app.config import settings
+from app.config_loader import get_config
 
 logger = logging.getLogger(__name__)
 
 _client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-_prompts_dir = Path(__file__).parent.parent / "prompts"
+_jinja_env = Environment(
+    loader=FileSystemLoader(Path(__file__).parent.parent / "prompts"),
+    keep_trailing_newline=True,
+)
 
 
-def _load_prompt(name: str) -> str:
-    return (_prompts_dir / name).read_text(encoding="utf-8")
-
-
-# Stage-specific instructions for response generation
-STAGE_INSTRUCTIONS = {
-    "NEW_REPLY": "Поблагодари за ответ, представься кратко, задай уточняющий вопрос о потребностях клиента.",
-    "INTERESTED": "Предложи отправить портфолио с релевантными примерами. Спроси, какой тип мебели интересует больше всего.",
-    "PORTFOLIO_SENT": "Портфолио уже отправлено. Спроси, успел ли клиент ознакомиться. Предложи ответить на вопросы по конкретным позициям.",
-    "IN_DISCUSSION": "Продолжай обсуждение. Если это 3+ обмен, естественно предложи продолжить в Telegram для оперативности: '{telegram_link}'. Если клиент готов — предложи подключить менеджера.",
-    "HANDOFF_TO_MANAGER": "Подтверди, что персональный менеджер свяжется в ближайшее время. Спроси, удобнее ли по телефону, email или в Telegram.",
-}
+def _render(template_name: str, **runtime_vars) -> str:
+    """Render a Jinja2 prompt template with config + runtime vars."""
+    config = get_config()
+    template = _jinja_env.get_template(template_name)
+    return template.render(
+        business=config.business,
+        products=config.products,
+        tone=config.tone,
+        categories=config.funnel.categories,
+        **runtime_vars,
+    )
 
 
 async def classify_reply(email_body: str) -> dict:
     """Classify an incoming email reply into a category."""
-    prompt = _load_prompt("classify_reply.txt").format(email_body=email_body)
+    prompt = _render("classify_reply.j2", email_body=email_body)
 
     response = await _client.chat.completions.create(
         model=settings.OPENAI_MODEL,
@@ -55,11 +63,14 @@ async def generate_response(
     exchange_count: int,
 ) -> str:
     """Generate an email reply based on the current funnel stage."""
-    system_prompt = _load_prompt("system_prompt.txt").format(
-        company_name=settings.COMPANY_NAME
-    )
+    config = get_config()
 
-    stage_instructions = STAGE_INSTRUCTIONS.get(stage, STAGE_INSTRUCTIONS["IN_DISCUSSION"])
+    system_prompt = _render("system_prompt.j2")
+
+    # Stage instructions from config
+    stage_instructions = config.stage_instructions.get(
+        stage, config.stage_instructions.get("IN_DISCUSSION", "")
+    )
     if "{telegram_link}" in stage_instructions:
         stage_instructions = stage_instructions.replace(
             "{telegram_link}", settings.TELEGRAM_BOT_LINK
@@ -67,7 +78,8 @@ async def generate_response(
 
     lead_info_str = ", ".join(f"{k}: {v}" for k, v in lead_info.items() if v)
 
-    user_prompt = _load_prompt("generate_response.txt").format(
+    user_prompt = _render(
+        "generate_response.j2",
         stage=stage,
         lead_info=lead_info_str,
         exchange_count=exchange_count,
@@ -95,10 +107,13 @@ async def generate_telegram_response(
     conversation_history: list[dict],
 ) -> str:
     """Generate a Telegram message reply."""
-    system_prompt = _load_prompt("system_prompt.txt").format(
-        company_name=settings.COMPANY_NAME
+    config = get_config()
+    system_prompt = _render("system_prompt.j2")
+    system_prompt += (
+        f"\n\nСейчас ты общаешься в Telegram. Будь ещё более кратким — "
+        f"1-{config.tone.max_sentences_telegram} предложения. "
+        f"Используй неформальный, но уважительный тон."
     )
-    system_prompt += "\n\nСейчас ты общаешься в Telegram. Будь ещё более кратким — 1-3 предложения. Используй неформальный, но уважительный тон."
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(conversation_history)

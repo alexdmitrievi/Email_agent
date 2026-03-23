@@ -1,0 +1,254 @@
+# =============================================================================
+# Бизнес-конфигурация: B2B-консалтинг
+# =============================================================================
+# Этот файл определяет ВСЮ бизнес-логику AI-агента.
+# Для смены ниши — создайте копию и измените поля.
+# Секреты (API-ключи, токены) хранятся в .env, НЕ здесь.
+# =============================================================================
+
+business:
+  name: "Консалтинговая группа «Вектор»"
+  niche: "consulting"
+  language: "ru"
+  website: "https://vektor-consulting.ru"
+  phone: "+7 (495) 555-66-77"
+  description: >
+    Консалтинговая группа «Вектор» — управленческий и операционный
+    консалтинг для среднего и крупного бизнеса. Оптимизация бизнес-процессов,
+    стратегическое планирование, автоматизация, внедрение CRM/ERP.
+    Команда: 30+ экспертов, опыт работы с 200+ компаниями.
+    Средний рост эффективности клиентов — 25-40% за 6 месяцев.
+
+products:
+  summary: "B2B-консалтинг — стратегия, оптимизация процессов, автоматизация, внедрение CRM/ERP"
+  details:
+    - name: "Стратегический консалтинг"
+      description: "Разработка стратегии развития, анализ рынка, конкурентная разведка"
+    - name: "Оптимизация бизнес-процессов"
+      description: "Аудит процессов, устранение узких мест, повышение эффективности"
+    - name: "Автоматизация и цифровизация"
+      description: "Внедрение CRM, ERP, BI-систем, автоматизация рутинных задач"
+    - name: "Финансовый консалтинг"
+      description: "Управленческий учёт, бюджетирование, финансовое моделирование"
+    - name: "HR-консалтинг"
+      description: "Построение системы мотивации, оценка персонала, организационный дизайн"
+  pricing_policy: >
+    Стоимость проекта зависит от масштаба и сложности задач.
+    Можно озвучивать ориентировочные диапазоны стоимости проектов,
+    но точная цена — после проведения диагностики и согласования ТЗ.
+    Первая консультация (30 минут) — бесплатно.
+
+# =============================================================================
+# Воронка продаж
+# =============================================================================
+
+funnel:
+  stages:
+    - id: "NEW_REPLY"
+      label: "Новый ответ"
+      description: "Первый ответ клиента на холодное письмо"
+
+    - id: "INTERESTED"
+      label: "Заинтересован"
+      description: "Клиент проявил интерес, но ещё не получил кейсы"
+
+    - id: "CASE_STUDY_SENT"
+      label: "Кейсы отправлены"
+      description: "Кейсы и материалы с примерами проектов отправлены клиенту"
+      attachment: "assets/case_study.pdf"
+
+    - id: "DEMO_SCHEDULED"
+      label: "Демо назначено"
+      description: "Демонстрационный звонок или презентация согласованы"
+
+    - id: "IN_DISCUSSION"
+      label: "Обсуждение"
+      description: "Активное обсуждение задач, объёма проекта, условий"
+
+    - id: "HANDOFF_TO_MANAGER"
+      label: "Передача менеджеру"
+      description: "Клиент готов к старту проекта или требует коммерческое предложение"
+
+    - id: "ORDER"
+      label: "Заказ"
+      description: "Договор подписан, проект запущен"
+
+    - id: "NOT_INTERESTED"
+      label: "Не заинтересован"
+      description: "Клиент отказался"
+
+    - id: "ARCHIVED"
+      label: "Архив"
+      description: "Спам, автоответ или нерелевантный ответ"
+
+  categories:
+    - id: "INTERESTED"
+      description: "Клиент проявляет интерес, хочет узнать больше о консалтинге"
+    - id: "NOT_INTERESTED"
+      description: "Клиент явно отказывается или просит прекратить рассылку"
+    - id: "SPAM"
+      description: "Автоответ рассылки, нерелевантный контент, отбойник"
+    - id: "OUT_OF_OFFICE"
+      description: "Автоматический ответ об отсутствии"
+    - id: "QUESTION"
+      description: "Клиент задаёт конкретный вопрос об услугах, подходе, стоимости"
+    - id: "READY_TO_ORDER"
+      description: "Клиент хочет начать проект, провести демо или назначить встречу"
+
+  transitions:
+    # NEW_REPLY
+    - { from: "NEW_REPLY", on: "INTERESTED", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "QUESTION", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_REPLY", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_REPLY", on: "OUT_OF_OFFICE", to: "NEW_REPLY", action: "ignore" }
+    - { from: "NEW_REPLY", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # INTERESTED
+    - { from: "INTERESTED", on: "INTERESTED", to: "CASE_STUDY_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "QUESTION", to: "CASE_STUDY_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "INTERESTED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "INTERESTED", on: "OUT_OF_OFFICE", to: "INTERESTED", action: "ignore" }
+    - { from: "INTERESTED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # CASE_STUDY_SENT
+    - { from: "CASE_STUDY_SENT", on: "INTERESTED", to: "DEMO_SCHEDULED", action: "continue_discussion" }
+    - { from: "CASE_STUDY_SENT", on: "QUESTION", to: "DEMO_SCHEDULED", action: "continue_discussion" }
+    - { from: "CASE_STUDY_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "CASE_STUDY_SENT", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "CASE_STUDY_SENT", on: "OUT_OF_OFFICE", to: "CASE_STUDY_SENT", action: "ignore" }
+    - { from: "CASE_STUDY_SENT", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # DEMO_SCHEDULED
+    - { from: "DEMO_SCHEDULED", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "DEMO_SCHEDULED", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "DEMO_SCHEDULED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "DEMO_SCHEDULED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "DEMO_SCHEDULED", on: "OUT_OF_OFFICE", to: "DEMO_SCHEDULED", action: "ignore" }
+    - { from: "DEMO_SCHEDULED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # IN_DISCUSSION
+    - { from: "IN_DISCUSSION", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "IN_DISCUSSION", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "OUT_OF_OFFICE", to: "IN_DISCUSSION", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+
+  follow_up_eligible_stages:
+    - "CASE_STUDY_SENT"
+    - "DEMO_SCHEDULED"
+    - "IN_DISCUSSION"
+
+# =============================================================================
+# Follow-up настройки
+# =============================================================================
+
+follow_ups:
+  delay_days: 3
+  max_count: 3
+
+# =============================================================================
+# Инструкции AI для каждой стадии воронки
+# =============================================================================
+
+stage_instructions:
+  NEW_REPLY: >
+    Поблагодари за ответ. Представься как помощник консалтинговой группы
+    «Вектор». Уточни, какие задачи стоят перед бизнесом клиента:
+    оптимизация процессов, стратегия, автоматизация, финансы, HR?
+    Спроси про размер компании и сферу деятельности.
+  INTERESTED: >
+    Предложи отправить подборку кейсов по релевантному направлению.
+    Упомяни, что первая консультация (30 мин) бесплатна.
+    Уточни ключевые бизнес-задачи для подбора подходящих примеров.
+  CASE_STUDY_SENT: >
+    Кейсы уже отправлены. Спроси, успел ли клиент ознакомиться
+    с материалами. Предложи провести короткую демонстрацию (30 мин)
+    по Zoom или Google Meet, чтобы показать подход к решению его задач
+    и ответить на вопросы.
+  DEMO_SCHEDULED: >
+    Демо назначено или уже проведено. Уточни впечатления клиента.
+    Ответь на вопросы по подходу, срокам и стоимости.
+    Предложи подготовить индивидуальное коммерческое предложение.
+  IN_DISCUSSION: >
+    Продолжай обсуждение деталей проекта: объём работ, сроки, команда,
+    KPI. Если это 3+ обмен сообщениями, предложи продолжить в Telegram
+    для оперативности: '{telegram_link}'.
+    Если клиент готов — предложи подключить руководителя проекта
+    для финального согласования и подготовки договора.
+  HANDOFF_TO_MANAGER: >
+    Подтверди, что руководитель проекта свяжется в ближайшее время
+    для обсуждения условий сотрудничества и подготовки договора.
+    Спроси, удобнее ли по телефону, email или в Telegram.
+
+# =============================================================================
+# Handoff (передача менеджеру)
+# =============================================================================
+
+handoff:
+  telegram_keywords:
+    - "консультация"
+    - "демо"
+    - "демонстрация"
+    - "презентация"
+    - "звонок"
+    - "позвонить"
+    - "проект"
+    - "начать"
+    - "старт"
+    - "договор"
+    - "КП"
+    - "предложение"
+    - "встреча"
+    - "встретиться"
+    - "обсудить"
+    - "заказ"
+    - "оплата"
+
+# =============================================================================
+# Тон и стиль общения
+# =============================================================================
+
+tone:
+  formality: "formal"
+  address: "Вы"
+  max_sentences_email: 6
+  max_sentences_telegram: 3
+  sign_off_style: "professional"
+
+# =============================================================================
+# Telegram-бот
+# =============================================================================
+
+telegram:
+  welcome_message: >
+    Здравствуйте, {first_name}! Я — виртуальный помощник консалтинговой
+    группы «{company_name}».
+
+    Могу рассказать о наших услугах, поделиться кейсами из вашей отрасли
+    или помочь записаться на бесплатную консультацию.
+
+    Чем могу быть полезен?
+  handoff_confirmation: >
+    Отлично! Я передам ваш запрос руководителю проекта, и он свяжется
+    с вами в ближайшее время для обсуждения деталей сотрудничества.
+    Спасибо за интерес к услугам «Вектор»!
+
+# =============================================================================
+# Google Calendar (бронирование консультаций/демо)
+# =============================================================================
+
+calendar:
+  enabled: true
+  calendar_id: "primary"
+  slot_duration_minutes: 30
+  working_hours:
+    start: "09:00"
+    end: "19:00"
+  timezone: "Europe/Moscow"
+
+# =============================================================================
+# Ответ незаинтересованным
+# =============================================================================
+
+not_interested_reply: >
+  Спасибо за ваш ответ! Если в будущем возникнет потребность в консалтинговых
+  услугах, мы всегда будем рады помочь. Желаем успехов вашему бизнесу!

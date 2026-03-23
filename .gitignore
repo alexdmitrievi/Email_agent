@@ -10,3 +10,8 @@ build/
 .mypy_cache/
 .pytest_cache/
 assets/portfolio.pdf
+assets/kp.pdf
+assets/case_study.pdf
+data/
+backups/
+*.db

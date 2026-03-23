@@ -1,0 +1,235 @@
+# =============================================================================
+# Бизнес-конфигурация: Мебель на заказ (пример)
+# =============================================================================
+# Этот файл определяет ВСЮ бизнес-логику AI-агента.
+# Для смены ниши — создайте копию и измените поля.
+# Секреты (API-ключи, токены) хранятся в .env, НЕ здесь.
+# =============================================================================
+
+business:
+  name: "Мастерская мебели «Древо»"
+  niche: "furniture"
+  language: "ru"
+  website: "https://drevo-mebel.ru"
+  phone: "+7 (495) 111-22-33"
+  description: >
+    Мастерская «Древо» — производство мебели на заказ из натуральных
+    материалов. Кухни, спальни, гостиные, детские, офисная мебель.
+    Работаем с массивом дуба, бука, ясеня, а также с МДФ и ЛДСП.
+    Полный цикл: замер → дизайн-проект → производство → доставка → монтаж.
+    Сроки изготовления: от 2 до 6 недель.
+
+products:
+  summary: "Мебель на заказ — кухни, шкафы-купе, гардеробные, офисная мебель, детская мебель"
+  details:
+    - name: "Кухни на заказ"
+      description: "Кухонные гарнитуры по индивидуальным размерам, любые фасады и столешницы"
+    - name: "Шкафы-купе и гардеробные"
+      description: "Встроенные и корпусные шкафы, гардеробные комнаты любой конфигурации"
+    - name: "Мебель для гостиной"
+      description: "Стенки, тумбы под ТВ, стеллажи, журнальные столы"
+    - name: "Детская мебель"
+      description: "Безопасная мебель для детских комнат: кровати, столы, системы хранения"
+    - name: "Офисная мебель"
+      description: "Рабочие столы, стеллажи, ресепшн, переговорные столы"
+  pricing_policy: >
+    Индивидуальный расчёт для каждого проекта после замера.
+    Можно называть ориентировочные диапазоны «от X до Y руб.»,
+    но точные цены — только после обсуждения с менеджером и утверждения
+    дизайн-проекта. Бесплатный замер при заказе от 50 000 руб.
+
+# =============================================================================
+# Воронка продаж
+# =============================================================================
+
+funnel:
+  stages:
+    - id: "NEW_REPLY"
+      label: "Новый ответ"
+      description: "Первый ответ клиента на холодное письмо"
+
+    - id: "INTERESTED"
+      label: "Заинтересован"
+      description: "Клиент проявил интерес, но ещё не получил материалы"
+
+    - id: "MATERIALS_SENT"
+      label: "Портфолио отправлено"
+      description: "Портфолио с примерами работ отправлено клиенту"
+      attachment: "assets/portfolio.pdf"
+
+    - id: "IN_DISCUSSION"
+      label: "Обсуждение"
+      description: "Активное обсуждение деталей проекта: размеры, материалы, сроки"
+
+    - id: "HANDOFF_TO_MANAGER"
+      label: "Передача менеджеру"
+      description: "Клиент готов к заказу, замеру или личной встрече"
+
+    - id: "ORDER"
+      label: "Заказ"
+      description: "Сделка закрыта, заказ оформлен"
+
+    - id: "NOT_INTERESTED"
+      label: "Не заинтересован"
+      description: "Клиент отказался"
+
+    - id: "ARCHIVED"
+      label: "Архив"
+      description: "Спам, автоответ или нерелевантный ответ"
+
+  categories:
+    - id: "INTERESTED"
+      description: "Клиент проявляет интерес, хочет узнать больше о мебели"
+    - id: "NOT_INTERESTED"
+      description: "Клиент явно отказывается или просит прекратить рассылку"
+    - id: "SPAM"
+      description: "Автоответ рассылки, нерелевантный контент, отбойник"
+    - id: "OUT_OF_OFFICE"
+      description: "Автоматический ответ об отсутствии"
+    - id: "QUESTION"
+      description: "Клиент задаёт конкретный вопрос о мебели, ценах, сроках, материалах"
+    - id: "READY_TO_ORDER"
+      description: "Клиент хочет сделать заказ, вызвать замерщика или встретиться лично"
+
+  transitions:
+    # NEW_REPLY
+    - { from: "NEW_REPLY", on: "INTERESTED", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "QUESTION", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_REPLY", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_REPLY", on: "OUT_OF_OFFICE", to: "NEW_REPLY", action: "ignore" }
+    - { from: "NEW_REPLY", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # INTERESTED
+    - { from: "INTERESTED", on: "INTERESTED", to: "MATERIALS_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "QUESTION", to: "MATERIALS_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "INTERESTED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "INTERESTED", on: "OUT_OF_OFFICE", to: "INTERESTED", action: "ignore" }
+    - { from: "INTERESTED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # MATERIALS_SENT
+    - { from: "MATERIALS_SENT", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "MATERIALS_SENT", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "MATERIALS_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "MATERIALS_SENT", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "MATERIALS_SENT", on: "OUT_OF_OFFICE", to: "MATERIALS_SENT", action: "ignore" }
+    - { from: "MATERIALS_SENT", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # IN_DISCUSSION
+    - { from: "IN_DISCUSSION", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "IN_DISCUSSION", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "OUT_OF_OFFICE", to: "IN_DISCUSSION", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+
+  follow_up_eligible_stages:
+    - "MATERIALS_SENT"
+    - "IN_DISCUSSION"
+
+# =============================================================================
+# Follow-up настройки
+# =============================================================================
+
+follow_ups:
+  delay_days: 3
+  max_count: 2
+
+# =============================================================================
+# Инструкции AI для каждой стадии воронки
+# =============================================================================
+
+stage_instructions:
+  NEW_REPLY: >
+    Поблагодари за ответ. Представься как помощник мастерской «Древо».
+    Уточни, какая мебель интересует клиента: кухня, шкаф, гостиная, офис?
+    Спроси про предпочтения по материалам и бюджету.
+  INTERESTED: >
+    Предложи отправить портфолио с примерами готовых работ по интересующему
+    направлению. Уточни размеры помещения и пожелания по стилю.
+    Упомяни, что замер бесплатный при заказе от 50 000 руб.
+  MATERIALS_SENT: >
+    Портфолио уже отправлено. Спроси, успел ли клиент ознакомиться
+    с примерами. Предложи ответить на вопросы по конкретным позициям,
+    материалам или ценам. Напомни о возможности бесплатного замера.
+  IN_DISCUSSION: >
+    Продолжай обсуждение деталей проекта: размеры, материалы, фурнитура,
+    сроки. Если это 3+ обмен сообщениями, предложи продолжить в Telegram
+    для оперативности: '{telegram_link}'.
+    Если клиент определился — предложи вызвать замерщика или подключить
+    менеджера для точного расчёта.
+  HANDOFF_TO_MANAGER: >
+    Подтверди, что персональный менеджер свяжется в ближайшее время
+    для уточнения деталей и организации замера.
+    Спроси, удобнее ли по телефону, email или в Telegram.
+
+# =============================================================================
+# Handoff (передача менеджеру)
+# =============================================================================
+
+handoff:
+  telegram_keywords:
+    - "заказ"
+    - "заказать"
+    - "купить"
+    - "оформить"
+    - "менеджер"
+    - "встреча"
+    - "встретиться"
+    - "замер"
+    - "замерщик"
+    - "позвонить"
+    - "звонок"
+    - "договориться"
+    - "оплата"
+    - "оплатить"
+    - "монтаж"
+    - "доставка"
+
+# =============================================================================
+# Тон и стиль общения
+# =============================================================================
+
+tone:
+  formality: "semiformal"
+  address: "Вы"
+  max_sentences_email: 5
+  max_sentences_telegram: 3
+  sign_off_style: "professional"
+
+# =============================================================================
+# Telegram-бот
+# =============================================================================
+
+telegram:
+  welcome_message: >
+    Здравствуйте, {first_name}! Я — виртуальный помощник мастерской
+    «{company_name}».
+
+    Могу рассказать о наших возможностях, показать примеры работ,
+    помочь с выбором материалов или связать с менеджером.
+
+    Чем могу быть полезен?
+  handoff_confirmation: >
+    Отлично! Я передам ваш запрос нашему менеджеру, и он свяжется с вами
+    в ближайшее время для обсуждения деталей и организации замера.
+    Спасибо за интерес к нашей мебели!
+
+# =============================================================================
+# Google Calendar (бронирование замеров/встреч)
+# =============================================================================
+
+calendar:
+  enabled: true
+  calendar_id: "primary"
+  slot_duration_minutes: 60
+  working_hours:
+    start: "09:00"
+    end: "18:00"
+  timezone: "Europe/Moscow"
+
+# =============================================================================
+# Ответ незаинтересованным
+# =============================================================================
+
+not_interested_reply: >
+  Спасибо за ваш ответ! Если в будущем возникнет потребность в качественной
+  мебели на заказ, мы всегда будем рады помочь. Хорошего дня!

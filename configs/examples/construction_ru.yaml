@@ -1,0 +1,254 @@
+# =============================================================================
+# Бизнес-конфигурация: Строительство и ремонт
+# =============================================================================
+# Этот файл определяет ВСЮ бизнес-логику AI-агента.
+# Для смены ниши — создайте копию и измените поля.
+# Секреты (API-ключи, токены) хранятся в .env, НЕ здесь.
+# =============================================================================
+
+business:
+  name: "СтройМастер"
+  niche: "construction"
+  language: "ru"
+  website: "https://stroymaster-pro.ru"
+  phone: "+7 (495) 333-44-55"
+  description: >
+    Компания «СтройМастер» — строительство и ремонт квартир, домов
+    и коммерческих помещений под ключ. Капитальный и косметический ремонт,
+    перепланировка, отделка, инженерные коммуникации.
+    Собственные бригады, прорабы на каждом объекте, гарантия 3 года.
+    Работаем по Москве и Московской области.
+
+products:
+  summary: "Строительство и ремонт под ключ — квартиры, дома, коммерческие помещения"
+  details:
+    - name: "Капитальный ремонт квартир"
+      description: "Полная переделка квартиры: перепланировка, стяжка, электрика, сантехника, отделка"
+    - name: "Косметический ремонт"
+      description: "Обновление отделки: покраска стен, замена обоев, потолков, напольных покрытий"
+    - name: "Ремонт коммерческих помещений"
+      description: "Офисы, магазины, рестораны — от проекта до сдачи объекта"
+    - name: "Строительство домов"
+      description: "Строительство загородных домов из кирпича, газобетона, каркасных конструкций"
+    - name: "Инженерные коммуникации"
+      description: "Электрика, сантехника, отопление, вентиляция, кондиционирование"
+  pricing_policy: >
+    Стоимость рассчитывается индивидуально после выезда на объект и замера.
+    Можно называть ориентировочную стоимость «от X руб. за м²»,
+    но точная смета — только после осмотра объекта и утверждения
+    технического задания. Выезд замерщика бесплатный.
+
+# =============================================================================
+# Воронка продаж
+# =============================================================================
+
+funnel:
+  stages:
+    - id: "NEW_REPLY"
+      label: "Новый ответ"
+      description: "Первый ответ клиента на холодное письмо"
+
+    - id: "INTERESTED"
+      label: "Заинтересован"
+      description: "Клиент проявил интерес, но ещё не получил КП"
+
+    - id: "KP_SENT"
+      label: "КП отправлено"
+      description: "Коммерческое предложение отправлено клиенту"
+      attachment: "assets/kp.pdf"
+
+    - id: "ESTIMATE_SCHEDULED"
+      label: "Замер назначен"
+      description: "Выезд на объект для замера и составления сметы согласован"
+
+    - id: "IN_DISCUSSION"
+      label: "Обсуждение"
+      description: "Активное обсуждение деталей проекта, согласование сметы"
+
+    - id: "HANDOFF_TO_MANAGER"
+      label: "Передача менеджеру"
+      description: "Клиент готов к заключению договора или требует личную встречу"
+
+    - id: "ORDER"
+      label: "Заказ"
+      description: "Договор подписан, работы начаты"
+
+    - id: "NOT_INTERESTED"
+      label: "Не заинтересован"
+      description: "Клиент отказался"
+
+    - id: "ARCHIVED"
+      label: "Архив"
+      description: "Спам, автоответ или нерелевантный ответ"
+
+  categories:
+    - id: "INTERESTED"
+      description: "Клиент проявляет интерес, хочет узнать больше о ремонте/строительстве"
+    - id: "NOT_INTERESTED"
+      description: "Клиент явно отказывается или просит прекратить рассылку"
+    - id: "SPAM"
+      description: "Автоответ рассылки, нерелевантный контент, отбойник"
+    - id: "OUT_OF_OFFICE"
+      description: "Автоматический ответ об отсутствии"
+    - id: "QUESTION"
+      description: "Клиент задаёт конкретный вопрос о стоимости, сроках, материалах"
+    - id: "READY_TO_ORDER"
+      description: "Клиент хочет вызвать замерщика, заключить договор или встретиться лично"
+
+  transitions:
+    # NEW_REPLY
+    - { from: "NEW_REPLY", on: "INTERESTED", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "QUESTION", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_REPLY", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_REPLY", on: "OUT_OF_OFFICE", to: "NEW_REPLY", action: "ignore" }
+    - { from: "NEW_REPLY", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # INTERESTED
+    - { from: "INTERESTED", on: "INTERESTED", to: "KP_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "QUESTION", to: "KP_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "INTERESTED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "INTERESTED", on: "OUT_OF_OFFICE", to: "INTERESTED", action: "ignore" }
+    - { from: "INTERESTED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # KP_SENT
+    - { from: "KP_SENT", on: "INTERESTED", to: "ESTIMATE_SCHEDULED", action: "continue_discussion" }
+    - { from: "KP_SENT", on: "QUESTION", to: "ESTIMATE_SCHEDULED", action: "continue_discussion" }
+    - { from: "KP_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "KP_SENT", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "KP_SENT", on: "OUT_OF_OFFICE", to: "KP_SENT", action: "ignore" }
+    - { from: "KP_SENT", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # ESTIMATE_SCHEDULED
+    - { from: "ESTIMATE_SCHEDULED", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "ESTIMATE_SCHEDULED", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "ESTIMATE_SCHEDULED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "ESTIMATE_SCHEDULED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "ESTIMATE_SCHEDULED", on: "OUT_OF_OFFICE", to: "ESTIMATE_SCHEDULED", action: "ignore" }
+    - { from: "ESTIMATE_SCHEDULED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # IN_DISCUSSION
+    - { from: "IN_DISCUSSION", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "IN_DISCUSSION", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "OUT_OF_OFFICE", to: "IN_DISCUSSION", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+
+  follow_up_eligible_stages:
+    - "KP_SENT"
+    - "ESTIMATE_SCHEDULED"
+    - "IN_DISCUSSION"
+
+# =============================================================================
+# Follow-up настройки
+# =============================================================================
+
+follow_ups:
+  delay_days: 4
+  max_count: 2
+
+# =============================================================================
+# Инструкции AI для каждой стадии воронки
+# =============================================================================
+
+stage_instructions:
+  NEW_REPLY: >
+    Поблагодари за ответ. Представься как помощник компании «СтройМастер».
+    Уточни, какой вид работ интересует клиента: ремонт квартиры, дома,
+    офиса или строительство? Спроси про площадь объекта и желаемые сроки.
+  INTERESTED: >
+    Предложи отправить коммерческое предложение с примерами выполненных
+    объектов и ориентировочными ценами. Уточни тип помещения, площадь
+    и объём работ для подготовки релевантного КП.
+  KP_SENT: >
+    Коммерческое предложение уже отправлено. Спроси, успел ли клиент
+    ознакомиться с материалами. Предложи организовать бесплатный выезд
+    замерщика на объект для составления точной сметы.
+  ESTIMATE_SCHEDULED: >
+    Замер назначен или уже проведён. Уточни, получил ли клиент смету.
+    Ответь на вопросы по стоимости, срокам и материалам. Предложи
+    обсудить детали или скорректировать смету.
+  IN_DISCUSSION: >
+    Продолжай обсуждение деталей проекта: материалы, сроки, этапы работ.
+    Если это 3+ обмен сообщениями, предложи продолжить в Telegram
+    для оперативности: '{telegram_link}'.
+    Если клиент согласен со сметой — предложи подключить менеджера
+    для заключения договора.
+  HANDOFF_TO_MANAGER: >
+    Подтверди, что менеджер проекта свяжется в ближайшее время
+    для обсуждения договора и графика работ.
+    Спроси, удобнее ли по телефону, email или в Telegram.
+
+# =============================================================================
+# Handoff (передача менеджеру)
+# =============================================================================
+
+handoff:
+  telegram_keywords:
+    - "смета"
+    - "замер"
+    - "замерщик"
+    - "ремонт"
+    - "стройка"
+    - "строительство"
+    - "прораб"
+    - "договор"
+    - "заказ"
+    - "заказать"
+    - "начать"
+    - "приступить"
+    - "встреча"
+    - "встретиться"
+    - "позвонить"
+    - "звонок"
+    - "оплата"
+    - "аванс"
+
+# =============================================================================
+# Тон и стиль общения
+# =============================================================================
+
+tone:
+  formality: "semiformal"
+  address: "Вы"
+  max_sentences_email: 5
+  max_sentences_telegram: 3
+  sign_off_style: "professional"
+
+# =============================================================================
+# Telegram-бот
+# =============================================================================
+
+telegram:
+  welcome_message: >
+    Здравствуйте, {first_name}! Я — виртуальный помощник компании
+    «{company_name}».
+
+    Могу рассказать о наших услугах по строительству и ремонту,
+    показать примеры выполненных объектов или помочь организовать
+    бесплатный замер.
+
+    Чем могу быть полезен?
+  handoff_confirmation: >
+    Отлично! Я передам ваш запрос менеджеру проекта, и он свяжется с вами
+    в ближайшее время для обсуждения деталей. Спасибо за интерес
+    к услугам «СтройМастер»!
+
+# =============================================================================
+# Google Calendar (бронирование замеров/встреч)
+# =============================================================================
+
+calendar:
+  enabled: true
+  calendar_id: "primary"
+  slot_duration_minutes: 60
+  working_hours:
+    start: "08:00"
+    end: "19:00"
+  timezone: "Europe/Moscow"
+
+# =============================================================================
+# Ответ незаинтересованным
+# =============================================================================
+
+not_interested_reply: >
+  Спасибо за ваш ответ! Если в будущем потребуется ремонт или строительство,
+  мы всегда будем рады помочь. Хорошего дня!

@@ -1,0 +1,215 @@
+# =============================================================================
+# Бизнес-конфигурация: Мебель на заказ
+# =============================================================================
+# Этот файл определяет ВСЮ бизнес-логику AI-агента.
+# Для смены ниши — создайте копию и измените поля.
+# Секреты (API-ключи, токены) хранятся в .env, НЕ здесь.
+# =============================================================================
+
+business:
+  name: "Мебельная компания"
+  niche: "furniture"
+  language: "ru"
+  website: "https://yoursite.ru"
+  phone: "+7 (999) 123-45-67"
+  description: >
+    Компания специализируется на производстве и продаже мебели:
+    офисная, для дома, на заказ по индивидуальным проектам.
+    Материалы: массив дерева, МДФ, ЛДСП, металлокаркас.
+    Сроки производства: 2-4 недели в зависимости от сложности.
+
+products:
+  summary: "Мебель на заказ — кухни, шкафы, офисная мебель, индивидуальные проекты"
+  details:
+    - name: "Кухни"
+      description: "Кухонные гарнитуры на заказ по индивидуальным размерам"
+    - name: "Шкафы и гардеробные"
+      description: "Встроенные и отдельностоящие шкафы, гардеробные системы"
+    - name: "Офисная мебель"
+      description: "Рабочие столы, стеллажи, переговорные столы"
+    - name: "Индивидуальные проекты"
+      description: "Любая мебель по вашему дизайн-проекту"
+  pricing_policy: >
+    Индивидуальный расчёт для каждого проекта.
+    Можно называть ценовые диапазоны «от X до Y руб.»,
+    но точные цены — только после обсуждения с менеджером.
+
+# =============================================================================
+# Воронка продаж
+# =============================================================================
+
+funnel:
+  stages:
+    - id: "NEW_REPLY"
+      label: "Новый ответ"
+      description: "Первый ответ клиента на холодное письмо"
+
+    - id: "INTERESTED"
+      label: "Заинтересован"
+      description: "Клиент проявил интерес, но ещё не получил материалы"
+
+    - id: "MATERIALS_SENT"
+      label: "Материалы отправлены"
+      description: "Портфолио/КП отправлено клиенту"
+      attachment: "assets/portfolio.pdf"
+
+    - id: "IN_DISCUSSION"
+      label: "Обсуждение"
+      description: "Активное обсуждение деталей проекта"
+
+    - id: "HANDOFF_TO_MANAGER"
+      label: "Передача менеджеру"
+      description: "Клиент готов к заказу или хочет встречу"
+
+    - id: "ORDER"
+      label: "Заказ"
+      description: "Сделка закрыта"
+
+    - id: "NOT_INTERESTED"
+      label: "Не заинтересован"
+      description: "Клиент отказался"
+
+    - id: "ARCHIVED"
+      label: "Архив"
+      description: "Спам или нерелевантный ответ"
+
+  categories:
+    - id: "INTERESTED"
+      description: "Клиент проявляет интерес, хочет узнать больше"
+    - id: "NOT_INTERESTED"
+      description: "Клиент явно отказывается или просит прекратить рассылку"
+    - id: "SPAM"
+      description: "Автоответ рассылки, нерелевантный контент, отбойник"
+    - id: "OUT_OF_OFFICE"
+      description: "Автоматический ответ об отсутствии"
+    - id: "QUESTION"
+      description: "Клиент задаёт конкретный вопрос о продукции/ценах/сроках"
+    - id: "READY_TO_ORDER"
+      description: "Клиент хочет сделать заказ, назначить встречу или поговорить лично"
+
+  transitions:
+    # NEW_REPLY
+    - { from: "NEW_REPLY", on: "INTERESTED", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "QUESTION", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_REPLY", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_REPLY", on: "OUT_OF_OFFICE", to: "NEW_REPLY", action: "ignore" }
+    - { from: "NEW_REPLY", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # INTERESTED
+    - { from: "INTERESTED", on: "INTERESTED", to: "MATERIALS_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "QUESTION", to: "MATERIALS_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "INTERESTED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # MATERIALS_SENT
+    - { from: "MATERIALS_SENT", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "MATERIALS_SENT", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "MATERIALS_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "MATERIALS_SENT", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    # IN_DISCUSSION
+    - { from: "IN_DISCUSSION", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "IN_DISCUSSION", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+
+  follow_up_eligible_stages:
+    - "MATERIALS_SENT"
+    - "IN_DISCUSSION"
+
+# =============================================================================
+# Follow-up настройки
+# =============================================================================
+
+follow_ups:
+  delay_days: 3
+  max_count: 2
+
+# =============================================================================
+# Инструкции AI для каждой стадии воронки
+# =============================================================================
+
+stage_instructions:
+  NEW_REPLY: >
+    Поблагодари за ответ, представься кратко, задай уточняющий вопрос
+    о потребностях клиента в мебели.
+  INTERESTED: >
+    Предложи отправить портфолио с релевантными примерами работ.
+    Спроси, какой тип мебели интересует больше всего.
+  MATERIALS_SENT: >
+    Портфолио уже отправлено. Спроси, успел ли клиент ознакомиться.
+    Предложи ответить на вопросы по конкретным позициям.
+  IN_DISCUSSION: >
+    Продолжай обсуждение деталей проекта.
+    Если это 3+ обмен, естественно предложи продолжить в Telegram
+    для оперативности: '{telegram_link}'.
+    Если клиент готов — предложи подключить менеджера для расчёта.
+  HANDOFF_TO_MANAGER: >
+    Подтверди, что персональный менеджер свяжется в ближайшее время.
+    Спроси, удобнее ли по телефону, email или в Telegram.
+
+# =============================================================================
+# Handoff (передача менеджеру)
+# =============================================================================
+
+handoff:
+  telegram_keywords:
+    - "заказ"
+    - "заказать"
+    - "купить"
+    - "оформить"
+    - "менеджер"
+    - "встреча"
+    - "встретиться"
+    - "позвонить"
+    - "звонок"
+    - "договориться"
+    - "оплата"
+    - "оплатить"
+
+# =============================================================================
+# Тон и стиль общения
+# =============================================================================
+
+tone:
+  formality: "semiformal"
+  address: "Вы"
+  max_sentences_email: 5
+  max_sentences_telegram: 3
+  sign_off_style: "professional"
+
+# =============================================================================
+# Telegram-бот
+# =============================================================================
+
+telegram:
+  welcome_message: >
+    Здравствуйте, {first_name}! Я — виртуальный помощник компании
+    «{company_name}».
+
+    Могу рассказать о нашей мебели, показать примеры работ
+    или помочь связаться с менеджером.
+
+    Чем могу быть полезен?
+  handoff_confirmation: >
+    Отлично! Я передам ваш запрос нашему менеджеру, и он свяжется с вами
+    в ближайшее время. Спасибо за интерес к нашей продукции!
+
+# =============================================================================
+# Google Calendar (бронирование встреч)
+# =============================================================================
+
+calendar:
+  enabled: true
+  calendar_id: "primary"
+  slot_duration_minutes: 30
+  working_hours:
+    start: "09:00"
+    end: "18:00"
+  timezone: "Europe/Moscow"
+
+# =============================================================================
+# Ответ незаинтересованным
+# =============================================================================
+
+not_interested_reply: >
+  Спасибо за ваш ответ! Если в будущем у вас возникнет потребность в мебели,
+  мы всегда будем рады помочь. Хорошего дня!

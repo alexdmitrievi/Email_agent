@@ -139,18 +139,29 @@ def get_stale_leads(days: int) -> list[dict]:
     """Get leads that haven't been contacted in `days` days and are eligible for follow-up."""
     from datetime import timedelta
 
+    from app.config_loader import get_config
+    from app.funnel.stages import get_follow_up_eligible_stages
+
     rows = _get_all_rows()
     stale = []
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    try:
+        config = get_config()
+        max_follow_ups = config.follow_ups.max_count
+        eligible_stages = get_follow_up_eligible_stages()
+    except RuntimeError:
+        max_follow_ups = settings.MAX_FOLLOW_UPS
+        eligible_stages = ["PORTFOLIO_SENT", "IN_DISCUSSION"]
 
     for i, row in enumerate(rows):
         if i == 0:
             continue
         lead = _row_to_dict(row, i + 1)
-        if lead["stage"] not in ("PORTFOLIO_SENT", "IN_DISCUSSION"):
+        if lead["stage"] not in eligible_stages:
             continue
         follow_up_count = int(lead.get("follow_up_count") or "0")
-        if follow_up_count >= settings.MAX_FOLLOW_UPS:
+        if follow_up_count >= max_follow_ups:
             continue
         try:
             last = datetime.strptime(lead["last_contact"], "%Y-%m-%d %H:%M").replace(

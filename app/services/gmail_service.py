@@ -137,13 +137,25 @@ def _extract_body(payload: dict) -> str:
 
 
 def _render_signature() -> str:
+    from app.config_loader import get_config
+
     template = _jinja_env.get_template("signature.html")
-    return template.render(
-        company_name=settings.COMPANY_NAME,
-        phone=settings.COMPANY_PHONE,
-        website=settings.COMPANY_WEBSITE,
-        messenger_link=settings.TELEGRAM_BOT_LINK,
-    )
+    try:
+        config = get_config()
+        return template.render(
+            company_name=config.business.name,
+            phone=config.business.phone,
+            website=config.business.website,
+            messenger_link=settings.TELEGRAM_BOT_LINK,
+        )
+    except RuntimeError:
+        # Fallback if config not loaded yet (e.g. during tests)
+        return template.render(
+            company_name=settings.COMPANY_NAME,
+            phone=settings.COMPANY_PHONE,
+            website=settings.COMPANY_WEBSITE,
+            messenger_link=settings.TELEGRAM_BOT_LINK,
+        )
 
 
 def send_reply(
