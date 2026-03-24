@@ -10,6 +10,10 @@ os.environ.setdefault("GOOGLE_SHEET_ID", "test-sheet-id")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123456:ABC-DEF")
 os.environ.setdefault("TELEGRAM_MANAGER_CHAT_ID", "123456789")
 os.environ.setdefault("BUSINESS_CONFIG_PATH", "tests/fixtures/test_business.yaml")
+os.environ.setdefault("AVITO_ENABLED", "false")
+os.environ.setdefault("AVITO_CLIENT_ID", "test-avito-id")
+os.environ.setdefault("AVITO_CLIENT_SECRET", "test-avito-secret")
+os.environ.setdefault("AVITO_USER_ID", "12345")
 
 import pytest
 

@@ -97,6 +97,20 @@ async def process_delayed_queue(ctx: dict) -> None:
             logger.error("Failed to send delayed reply: %s", e)
 
 
+async def poll_avito_messages(ctx: dict) -> None:
+    """Poll Avito messenger for new inbound messages."""
+    from app.config import settings
+    if not settings.AVITO_ENABLED:
+        return
+    from app.routers.avito_webhook import poll_avito
+    try:
+        result = await poll_avito()
+        if result.get("processed", 0) > 0:
+            logger.info("Avito poll: processed %d", result["processed"])
+    except Exception as e:
+        logger.error("Avito poll failed: %s", e)
+
+
 class WorkerSettings:
     """ARQ worker configuration."""
     functions = [
@@ -106,11 +120,13 @@ class WorkerSettings:
         compute_daily_stats,
         send_daily_summary,
         process_delayed_queue,
+        poll_avito_messages,
     ]
     cron_jobs = [
         cron(process_delayed_queue, second={0, 15, 30, 45}),  # every 15 seconds
         cron(compute_daily_stats, hour={23}, minute={55}),
         cron(send_daily_summary, hour={18}, minute={0}),
+        cron(poll_avito_messages, second={0}),  # every minute
     ]
     max_jobs = 10
     job_timeout = 300

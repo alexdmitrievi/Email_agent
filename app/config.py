@@ -62,6 +62,14 @@ class Settings(BaseSettings):
     # Telegram webhook secret (X-Telegram-Bot-Api-Secret-Token)
     TELEGRAM_WEBHOOK_SECRET: str = ""
 
+    # Avito
+    AVITO_ENABLED: bool = False
+    AVITO_CLIENT_ID: str = ""
+    AVITO_CLIENT_SECRET: str = ""
+    AVITO_USER_ID: str = ""
+    AVITO_POLL_INTERVAL: int = 60
+    AVITO_FUNNEL_CONFIG_PATH: str = "configs/avito_worker_funnel.yaml"
+
     # Admin
     ADMIN_SECRET: str = ""  # Bearer token for admin endpoints
 

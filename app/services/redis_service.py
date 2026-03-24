@@ -108,3 +108,37 @@ async def get_ready_replies() -> list[dict]:
     if items:
         await r.zremrangebyscore(DELAYED_QUEUE_KEY, "-inf", now)
     return [json.loads(item) for item in items]
+
+
+# ---- Avito lead state persistence ----
+
+AVITO_LEAD_PREFIX = "avito:lead:"
+AVITO_COOLDOWN_PREFIX = "avito:cooldown:"
+AVITO_LEAD_TTL = 86400 * 30  # 30 days
+
+
+async def get_avito_lead_state(chat_id: str) -> dict | None:
+    """Get Avito lead state from Redis."""
+    import json
+    r = await get_redis()
+    raw = await r.get(f"{AVITO_LEAD_PREFIX}{chat_id}")
+    return json.loads(raw) if raw else None
+
+
+async def set_avito_lead_state(chat_id: str, state: dict) -> None:
+    """Save Avito lead state to Redis."""
+    import json
+    r = await get_redis()
+    await r.set(f"{AVITO_LEAD_PREFIX}{chat_id}", json.dumps(state), ex=AVITO_LEAD_TTL)
+
+
+async def check_avito_cooldown(chat_id: str) -> bool:
+    """Return True if we can reply (no cooldown active)."""
+    r = await get_redis()
+    return not await r.exists(f"{AVITO_COOLDOWN_PREFIX}{chat_id}")
+
+
+async def set_avito_cooldown(chat_id: str, seconds: int = 300) -> None:
+    """Set a cooldown to prevent rapid-fire replies."""
+    r = await get_redis()
+    await r.set(f"{AVITO_COOLDOWN_PREFIX}{chat_id}", "1", ex=seconds)

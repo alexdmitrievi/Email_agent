@@ -10,7 +10,7 @@ from app.config import settings
 from app.config_loader import init_config
 from app.funnel.pipeline import load_transitions
 from app.middleware import APIRateLimitMiddleware, RequestIdMiddleware
-from app.routers import admin, analytics, gmail_webhook, health, telegram_webhook
+from app.routers import admin, analytics, avito_webhook, gmail_webhook, health, telegram_webhook
 
 # ---- Structured logging ----
 structlog.configure(
@@ -64,6 +64,8 @@ app.include_router(gmail_webhook.router, tags=["gmail"])
 app.include_router(telegram_webhook.router, tags=["telegram"])
 app.include_router(admin.router)
 app.include_router(analytics.router)
+if settings.AVITO_ENABLED:
+    app.include_router(avito_webhook.router)
 
 
 @app.on_event("startup")
@@ -98,6 +100,12 @@ async def on_startup():
     # 4. Load multi-account config
     from app.services.account_manager import load_accounts
     load_accounts()
+
+    # 4b. Load Avito config (if enabled)
+    if settings.AVITO_ENABLED:
+        from app.funnel.avito_pipeline import load_avito_config
+        load_avito_config()
+        logger.info("Avito integration enabled")
 
     # 5. Register Gmail push notifications
     try:

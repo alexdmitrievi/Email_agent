@@ -1,0 +1,190 @@
+# =============================================================================
+# Бизнес-конфигурация: Найм персонала на подряды (аутсорсинг)
+# =============================================================================
+
+business:
+  name: "ПодрядPRO — Персонал"
+  niche: "personnel_outsourcing"
+  language: "ru"
+  website: "https://podryadpro.ru"
+  phone: "+7 (XXX) XXX-XX-XX"
+  description: >
+    ПодрядPRO — подбор проверенных исполнителей для подрядных работ
+    в Омске и Новосибирске. Не штат, а подряд: грузчики, строители,
+    разнорабочие, уборщики, бригады под ключ.
+    Все исполнители с рейтингом и отзывами. Самозанятые и ИП.
+    Безопасная сделка: деньги в безопасности до завершения работы.
+
+products:
+  summary: "Подбор исполнителей на подрядные работы — не в штат, а на проект"
+  details:
+    - name: "Грузчики"
+      description: "Переезды, погрузка/разгрузка, складские работы. От 1 человека"
+    - name: "Строительные бригады"
+      description: "Каменщики, отделочники, монтажники, электрики, сантехники"
+    - name: "Разнорабочие"
+      description: "Демонтаж, уборка территории, земляные работы, подсобные работы"
+    - name: "Клининг"
+      description: "Уборка после ремонта, генеральная уборка, промышленный клининг"
+    - name: "Бригады под ключ"
+      description: "Комплектация бригады под проект: прораб + рабочие + инструмент"
+  pricing_policy: >
+    Стоимость зависит от специализации, количества людей и длительности работ.
+    Ориентировочно: грузчики от 500 руб/час, разнорабочие от 400 руб/час,
+    строители от 800 руб/час. Точный расчёт после уточнения задачи.
+    Бригады под ключ — индивидуальный расчёт.
+
+funnel:
+  stages:
+    - id: "NEW_REPLY"
+      label: "Новый ответ"
+      description: "Первый ответ заказчика"
+
+    - id: "INTERESTED"
+      label: "Заинтересован"
+      description: "Заказчик проявил интерес"
+
+    - id: "CASE_STUDY_SENT"
+      label: "Кейсы отправлены"
+      description: "Примеры выполненных проектов отправлены"
+      attachment: "assets/case_study.pdf"
+
+    - id: "IN_DISCUSSION"
+      label: "Обсуждение"
+      description: "Обсуждение деталей заказа"
+
+    - id: "HANDOFF_TO_MANAGER"
+      label: "Передача менеджеру"
+      description: "Заказчик готов нанять исполнителей"
+
+    - id: "ORDER"
+      label: "Заказ"
+      description: "Заказ оформлен"
+
+    - id: "NOT_INTERESTED"
+      label: "Не заинтересован"
+      description: "Заказчик отказался"
+
+    - id: "ARCHIVED"
+      label: "Архив"
+      description: "Спам или нерелевантный ответ"
+
+  categories:
+    - id: "INTERESTED"
+      description: "Заказчик проявляет интерес к найму персонала"
+    - id: "NOT_INTERESTED"
+      description: "Заказчик отказывается"
+    - id: "SPAM"
+      description: "Автоответ, нерелевантный контент"
+    - id: "OUT_OF_OFFICE"
+      description: "Автоответ об отсутствии"
+    - id: "QUESTION"
+      description: "Вопрос о расценках, доступности, условиях работы"
+    - id: "READY_TO_ORDER"
+      description: "Заказчик хочет нанять исполнителей, оформить заказ"
+
+  transitions:
+    - { from: "NEW_REPLY", on: "INTERESTED", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "QUESTION", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_REPLY", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_REPLY", on: "OUT_OF_OFFICE", to: "NEW_REPLY", action: "ignore" }
+    - { from: "NEW_REPLY", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "INTERESTED", on: "INTERESTED", to: "CASE_STUDY_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "QUESTION", to: "CASE_STUDY_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "INTERESTED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "INTERESTED", on: "OUT_OF_OFFICE", to: "INTERESTED", action: "ignore" }
+    - { from: "INTERESTED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "CASE_STUDY_SENT", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "CASE_STUDY_SENT", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "CASE_STUDY_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "CASE_STUDY_SENT", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "CASE_STUDY_SENT", on: "OUT_OF_OFFICE", to: "CASE_STUDY_SENT", action: "ignore" }
+    - { from: "CASE_STUDY_SENT", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "IN_DISCUSSION", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "IN_DISCUSSION", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "OUT_OF_OFFICE", to: "IN_DISCUSSION", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+
+  follow_up_eligible_stages:
+    - "CASE_STUDY_SENT"
+    - "IN_DISCUSSION"
+
+follow_ups:
+  delay_days: 3
+  max_count: 2
+
+stage_instructions:
+  NEW_REPLY: >
+    Поблагодари за ответ. Представься как помощник ПодрядPRO.
+    Уточни, какие исполнители нужны: грузчики, строители, разнорабочие,
+    уборщики или комплексная бригада? Спроси про город, объём работ и сроки.
+  INTERESTED: >
+    Предложи отправить примеры выполненных проектов и кейсы.
+    Расскажи о преимуществах: проверенные исполнители с рейтингом,
+    самозанятые (никаких проблем с налогами), безопасная сделка.
+    Уточни количество человек, специализацию и даты.
+  CASE_STUDY_SENT: >
+    Кейсы отправлены. Спроси, ознакомился ли заказчик.
+    Помоги подобрать оптимальный состав команды под задачу.
+    Расскажи про гарантии качества и систему рейтингов.
+  IN_DISCUSSION: >
+    Продолжай обсуждение: состав бригады, график, условия оплаты.
+    Если 3+ обмен — предложи Telegram: '{telegram_link}'.
+    Если заказчик определился — подключай менеджера.
+  HANDOFF_TO_MANAGER: >
+    Подтверди, что менеджер свяжется для оформления заказа.
+    Спроси удобный способ связи.
+
+handoff:
+  telegram_keywords:
+    - "заказ"
+    - "заказать"
+    - "нанять"
+    - "бригада"
+    - "бригаду"
+    - "оформить"
+    - "договор"
+    - "менеджер"
+    - "встреча"
+    - "позвонить"
+    - "звонок"
+    - "оплата"
+    - "приступить"
+    - "начать"
+    - "когда можно"
+
+tone:
+  formality: "semiformal"
+  address: "Вы"
+  max_sentences_email: 5
+  max_sentences_telegram: 3
+  sign_off_style: "professional"
+
+telegram:
+  welcome_message: >
+    Здравствуйте, {first_name}! Я — помощник ПодрядPRO.
+
+    Помогу подобрать проверенных исполнителей для ваших задач:
+    грузчики, строители, разнорабочие, уборка — в Омске и Новосибирске.
+
+    Какие специалисты вам нужны?
+  handoff_confirmation: >
+    Отлично! Менеджер свяжется с вами для подбора исполнителей.
+    Спасибо за выбор ПодрядPRO!
+
+calendar:
+  enabled: true
+  calendar_id: "primary"
+  slot_duration_minutes: 30
+  working_hours:
+    start: "08:00"
+    end: "20:00"
+  timezone: "Asia/Omsk"
+
+not_interested_reply: >
+  Спасибо за ваш ответ! Если понадобятся рабочие на подряд,
+  обращайтесь — ПодрядPRO к вашим услугам. Хорошего дня!

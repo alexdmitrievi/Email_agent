@@ -1,0 +1,190 @@
+# =============================================================================
+# Бизнес-конфигурация: Аренда строительной и садовой техники
+# =============================================================================
+
+business:
+  name: "ПодрядPRO — Аренда техники"
+  niche: "equipment_rental"
+  language: "ru"
+  website: "https://podryadpro.ru/equipment"
+  phone: "+7 (XXX) XXX-XX-XX"
+  description: >
+    Аренда строительной и садовой техники в Омске и Новосибирске.
+    Самосвалы, краны, вышки, экскаваторы, бетономешалки, газонокосилки,
+    триммеры, мотоблоки, бензопилы. Скидка при заказе исполнителей
+    через платформу ПодрядPRO. Доставка на объект.
+
+products:
+  summary: "Аренда строительной и садовой техники — с доставкой на объект"
+  details:
+    - name: "Самосвалы"
+      description: "Вывоз грунта, мусора, доставка сыпучих материалов. 5-20 тонн"
+    - name: "Краны и автокраны"
+      description: "Монтажные работы, подъём грузов. 10-50 тонн"
+    - name: "Экскаваторы"
+      description: "Земляные работы, рытьё котлованов, траншей"
+    - name: "Вышки и подъёмники"
+      description: "Фасадные работы, монтаж на высоте"
+    - name: "Бетономешалки и виброплиты"
+      description: "Бетонные работы, уплотнение грунта"
+    - name: "Садовая техника"
+      description: "Газонокосилки, триммеры, мотоблоки, бензопилы, кусторезы"
+  pricing_policy: >
+    Цена зависит от типа техники, срока аренды и необходимости доставки.
+    Можно называть ориентировочные расценки (самосвал от 3000 руб/смена,
+    экскаватор от 5000 руб/смена). Точный расчёт после уточнения деталей.
+    Скидка 10-15% при одновременном заказе исполнителей.
+
+funnel:
+  stages:
+    - id: "NEW_REPLY"
+      label: "Новый ответ"
+      description: "Первый ответ клиента"
+
+    - id: "INTERESTED"
+      label: "Заинтересован"
+      description: "Клиент проявил интерес"
+
+    - id: "CATALOG_SENT"
+      label: "Каталог отправлен"
+      description: "Каталог техники с ценами отправлен"
+      attachment: "assets/catalog.pdf"
+
+    - id: "IN_DISCUSSION"
+      label: "Обсуждение"
+      description: "Обсуждение деталей аренды"
+
+    - id: "HANDOFF_TO_MANAGER"
+      label: "Передача менеджеру"
+      description: "Клиент готов арендовать"
+
+    - id: "ORDER"
+      label: "Заказ"
+      description: "Техника забронирована"
+
+    - id: "NOT_INTERESTED"
+      label: "Не заинтересован"
+      description: "Клиент отказался"
+
+    - id: "ARCHIVED"
+      label: "Архив"
+      description: "Спам или нерелевантный ответ"
+
+  categories:
+    - id: "INTERESTED"
+      description: "Клиент интересуется арендой техники"
+    - id: "NOT_INTERESTED"
+      description: "Клиент отказывается"
+    - id: "SPAM"
+      description: "Автоответ, нерелевантный контент"
+    - id: "OUT_OF_OFFICE"
+      description: "Автоответ об отсутствии"
+    - id: "QUESTION"
+      description: "Вопрос о ценах, наличии, условиях аренды"
+    - id: "READY_TO_ORDER"
+      description: "Клиент хочет забронировать технику"
+
+  transitions:
+    - { from: "NEW_REPLY", on: "INTERESTED", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "QUESTION", to: "INTERESTED", action: "reply_with_interest" }
+    - { from: "NEW_REPLY", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_REPLY", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_REPLY", on: "OUT_OF_OFFICE", to: "NEW_REPLY", action: "ignore" }
+    - { from: "NEW_REPLY", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "INTERESTED", on: "INTERESTED", to: "CATALOG_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "QUESTION", to: "CATALOG_SENT", action: "send_materials" }
+    - { from: "INTERESTED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "INTERESTED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "INTERESTED", on: "OUT_OF_OFFICE", to: "INTERESTED", action: "ignore" }
+    - { from: "INTERESTED", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "CATALOG_SENT", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "CATALOG_SENT", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "CATALOG_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "CATALOG_SENT", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "CATALOG_SENT", on: "OUT_OF_OFFICE", to: "CATALOG_SENT", action: "ignore" }
+    - { from: "CATALOG_SENT", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+    - { from: "IN_DISCUSSION", on: "INTERESTED", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "QUESTION", to: "IN_DISCUSSION", action: "continue_discussion" }
+    - { from: "IN_DISCUSSION", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "IN_DISCUSSION", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "OUT_OF_OFFICE", to: "IN_DISCUSSION", action: "ignore" }
+    - { from: "IN_DISCUSSION", on: "READY_TO_ORDER", to: "HANDOFF_TO_MANAGER", action: "handoff_to_manager" }
+
+  follow_up_eligible_stages:
+    - "CATALOG_SENT"
+    - "IN_DISCUSSION"
+
+follow_ups:
+  delay_days: 3
+  max_count: 2
+
+stage_instructions:
+  NEW_REPLY: >
+    Поблагодари за ответ. Представься как помощник ПодрядPRO — аренда техники.
+    Уточни, какая техника нужна: строительная (краны, самосвалы, экскаваторы)
+    или садовая (газонокосилки, триммеры)? Спроси про город, даты и объём работ.
+  INTERESTED: >
+    Предложи отправить каталог техники с ценами.
+    Расскажи о скидке при одновременном заказе исполнителей.
+    Уточни тип техники, сроки аренды и адрес доставки.
+  CATALOG_SENT: >
+    Каталог отправлен. Спроси, успел ли клиент ознакомиться.
+    Помоги подобрать оптимальный вариант под задачу.
+    Предложи рассчитать стоимость с доставкой.
+  IN_DISCUSSION: >
+    Продолжай обсуждение: уточни даты, адрес доставки, нужен ли оператор.
+    Если 3+ обмен — предложи Telegram: '{telegram_link}'.
+    Если клиент определился — подключай менеджера.
+  HANDOFF_TO_MANAGER: >
+    Подтверди, что менеджер свяжется для бронирования техники.
+    Спроси удобный способ связи.
+
+handoff:
+  telegram_keywords:
+    - "аренда"
+    - "арендовать"
+    - "забронировать"
+    - "бронь"
+    - "заказ"
+    - "заказать"
+    - "доставка"
+    - "привезти"
+    - "техника"
+    - "кран"
+    - "самосвал"
+    - "экскаватор"
+    - "менеджер"
+    - "договор"
+    - "оплата"
+
+tone:
+  formality: "semiformal"
+  address: "Вы"
+  max_sentences_email: 5
+  max_sentences_telegram: 3
+  sign_off_style: "professional"
+
+telegram:
+  welcome_message: >
+    Здравствуйте, {first_name}! Я — помощник ПодрядPRO по аренде техники.
+
+    Строительная и садовая техника в Омске и Новосибирске.
+    Скидка при заказе вместе с бригадой!
+
+    Какая техника вас интересует?
+  handoff_confirmation: >
+    Отлично! Менеджер свяжется с вами для бронирования техники.
+    Спасибо за выбор ПодрядPRO!
+
+calendar:
+  enabled: true
+  calendar_id: "primary"
+  slot_duration_minutes: 30
+  working_hours:
+    start: "08:00"
+    end: "20:00"
+  timezone: "Asia/Omsk"
+
+not_interested_reply: >
+  Спасибо за ваш ответ! Если понадобится техника в аренду,
+  обращайтесь — ПодрядPRO к вашим услугам. Хорошего дня!

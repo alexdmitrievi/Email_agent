@@ -1,0 +1,143 @@
+# =============================================================================
+# Воронка Avito: привлечение исполнителей на платформу ПодрядPRO
+# =============================================================================
+# Мы размещаем объявления на Avito, исполнители пишут нам первыми,
+# AI-агент квалифицирует и ведёт до регистрации на podryadpro.ru.
+# =============================================================================
+
+business:
+  name: "ПодрядPRO — Работа"
+  niche: "worker_recruitment"
+  language: "ru"
+  website: "https://podryadpro.ru/auth/register"
+  phone: "+7 (XXX) XXX-XX-XX"
+  description: >
+    ПодрядPRO — платформа для заработка в Омске и Новосибирске.
+    Грузчики, строители, разнорабочие, уборщики — регистрируйтесь
+    и получайте заказы от проверенных заказчиков.
+    Безопасная сделка, рейтинг и отзывы, стабильный поток заказов.
+
+products:
+  summary: "Платформа для исполнителей — регистрация и получение заказов"
+  details:
+    - name: "Заказы на грузчиков"
+      description: "Переезды, погрузка, склады. Оплата от 500 руб/час"
+    - name: "Заказы на стройку"
+      description: "Отделка, монтаж, электрика, сантехника. Оплата от 800 руб/час"
+    - name: "Заказы на разнорабочих"
+      description: "Подсобные работы, демонтаж, уборка территории. От 400 руб/час"
+    - name: "Заказы на уборку"
+      description: "Генеральная уборка, после ремонта, офисы. От 450 руб/час"
+  pricing_policy: >
+    Регистрация бесплатная. Исполнитель сам выбирает заказы.
+    Комиссия платформы минимальная. Оплата после выполнения работы.
+
+funnel:
+  stages:
+    - id: "NEW_MESSAGE"
+      label: "Новое сообщение"
+      description: "Первое сообщение от потенциального исполнителя"
+    - id: "QUALIFIED"
+      label: "Квалифицирован"
+      description: "Выяснили специализацию и город"
+    - id: "LINK_SENT"
+      label: "Ссылка отправлена"
+      description: "Ссылка на регистрацию отправлена"
+    - id: "REGISTERED"
+      label: "Зарегистрирован"
+      description: "Исполнитель зарегистрировался"
+    - id: "NOT_INTERESTED"
+      label: "Не заинтересован"
+      description: "Отказался"
+    - id: "ARCHIVED"
+      label: "Архив"
+      description: "Спам"
+
+  categories:
+    - id: "INTERESTED"
+      description: "Исполнитель заинтересован в работе через платформу"
+    - id: "NOT_INTERESTED"
+      description: "Явно отказывается"
+    - id: "SPAM"
+      description: "Спам, бот"
+    - id: "OUT_OF_OFFICE"
+      description: "Автоответ"
+    - id: "QUESTION"
+      description: "Вопрос о платформе, условиях, оплате"
+    - id: "READY_TO_ORDER"
+      description: "Готов зарегистрироваться или уже зарегистрировался"
+
+  transitions:
+    - { from: "NEW_MESSAGE", on: "INTERESTED", to: "QUALIFIED", action: "reply_with_interest" }
+    - { from: "NEW_MESSAGE", on: "QUESTION", to: "QUALIFIED", action: "reply_with_interest" }
+    - { from: "NEW_MESSAGE", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "NEW_MESSAGE", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "NEW_MESSAGE", on: "OUT_OF_OFFICE", to: "NEW_MESSAGE", action: "ignore" }
+    - { from: "NEW_MESSAGE", on: "READY_TO_ORDER", to: "LINK_SENT", action: "send_materials" }
+    - { from: "QUALIFIED", on: "INTERESTED", to: "LINK_SENT", action: "send_materials" }
+    - { from: "QUALIFIED", on: "QUESTION", to: "LINK_SENT", action: "send_materials" }
+    - { from: "QUALIFIED", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "QUALIFIED", on: "SPAM", to: "ARCHIVED", action: "ignore" }
+    - { from: "QUALIFIED", on: "READY_TO_ORDER", to: "LINK_SENT", action: "send_materials" }
+    - { from: "LINK_SENT", on: "INTERESTED", to: "LINK_SENT", action: "continue_discussion" }
+    - { from: "LINK_SENT", on: "QUESTION", to: "LINK_SENT", action: "continue_discussion" }
+    - { from: "LINK_SENT", on: "NOT_INTERESTED", to: "NOT_INTERESTED", action: "reply_not_interested" }
+    - { from: "LINK_SENT", on: "READY_TO_ORDER", to: "REGISTERED", action: "handoff_to_manager" }
+
+  follow_up_eligible_stages:
+    - "QUALIFIED"
+    - "LINK_SENT"
+
+follow_ups:
+  delay_days: 2
+  max_count: 3
+
+stage_instructions:
+  NEW_MESSAGE: >
+    Поблагодари за интерес. Спроси: какая у тебя специализация
+    (грузчик, строитель, разнорабочий, уборщик)? В каком городе работаешь
+    (Омск, Новосибирск)? Есть ли опыт?
+  QUALIFIED: >
+    Отлично, ты нам подходишь! Расскажи о платформе ПодрядPRO:
+    стабильный поток заказов, безопасная сделка, рейтинг и отзывы,
+    регистрация бесплатная.
+    Отправь ссылку: https://podryadpro.ru/auth/register
+  LINK_SENT: >
+    Ссылка на регистрацию уже отправлена. Спроси, удалось ли зарегистрироваться.
+    Если есть вопросы — ответь. Напомни преимущества платформы.
+
+handoff:
+  telegram_keywords:
+    - "зарегистрировался"
+    - "готов"
+    - "проблема"
+    - "не работает"
+    - "ошибка"
+    - "менеджер"
+    - "помощь"
+
+tone:
+  formality: "informal"
+  address: "ты"
+  max_sentences_email: 5
+  max_sentences_telegram: 4
+  sign_off_style: "friendly"
+
+telegram:
+  welcome_message: >
+    Привет, {first_name}! Я — бот платформы {company_name}.
+    Ищешь работу в Омске/Новосибирске? Расскажи, какая у тебя специализация?
+  handoff_confirmation: >
+    Передаю твой вопрос менеджеру — он скоро свяжется. Спасибо!
+
+calendar:
+  enabled: false
+  calendar_id: "primary"
+  slot_duration_minutes: 30
+  working_hours:
+    start: "09:00"
+    end: "18:00"
+  timezone: "Asia/Omsk"
+
+not_interested_reply: >
+  Понятно, спасибо! Если передумаешь — ПодрядPRO всегда открыт. Удачи!

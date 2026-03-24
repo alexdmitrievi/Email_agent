@@ -21,9 +21,9 @@ _jinja_env = Environment(
 )
 
 
-def _render(template_name: str, **runtime_vars) -> str:
+def _render(template_name: str, config_override=None, **runtime_vars) -> str:
     """Render a Jinja2 prompt template with config + runtime vars."""
-    config = get_config()
+    config = config_override or get_config()
     template = _jinja_env.get_template(template_name)
     return template.render(
         business=config.business,
@@ -34,9 +34,9 @@ def _render(template_name: str, **runtime_vars) -> str:
     )
 
 
-async def classify_reply(email_body: str) -> dict:
+async def classify_reply(email_body: str, config_override=None) -> dict:
     """Classify an incoming email reply into a category."""
-    prompt = _render("classify_reply.j2", email_body=email_body)
+    prompt = _render("classify_reply.j2", config_override=config_override, email_body=email_body)
 
     response = await _client.chat.completions.create(
         model=settings.OPENAI_MODEL,
@@ -61,11 +61,12 @@ async def generate_response(
     lead_info: dict,
     thread_history: str,
     exchange_count: int,
+    config_override=None,
 ) -> str:
     """Generate an email reply based on the current funnel stage."""
-    config = get_config()
+    config = config_override or get_config()
 
-    system_prompt = _render("system_prompt.j2")
+    system_prompt = _render("system_prompt.j2", config_override=config)
 
     # Stage instructions from config
     stage_instructions = config.stage_instructions.get(
@@ -80,6 +81,7 @@ async def generate_response(
 
     user_prompt = _render(
         "generate_response.j2",
+        config_override=config,
         stage=stage,
         lead_info=lead_info_str,
         exchange_count=exchange_count,
