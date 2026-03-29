@@ -46,8 +46,25 @@ async def telegram_webhook(request: Request):
     # Save user message to Redis (persistent across restarts)
     await _append_history(chat_id, "user", text)
 
+    # Определить роль и источник трафика
+    from app.services.role_manager import role_manager
+    from app.services.traffic_router import traffic_router
+    from app.services import supabase_service
+    role_id = role_manager.assign_role_for_source("telegram", lead or {})
+    traffic_source = traffic_router.detect_source("telegram", {"first_message": text})
+
+    # Записать входящее в Supabase (non-fatal)
+    await supabase_service.log_conversation(
+        lead_email=(lead or {}).get("email", f"tg_{chat_id}@bot.local"),
+        channel="telegram",
+        direction="inbound",
+        message_text=text,
+        role_used=role_id,
+        stage_at_time=(lead or {}).get("stage", "NEW_REPLY"),
+    )
+
     # Check if client wants to order / meet manager
-    if _should_handoff(text):
+    if _should_handoff(text) or role_manager.is_handoff_trigger(role_id, text):
         config = get_config()
         if lead:
             sheets_service.update_lead(lead["row_number"], {"stage": "HANDOFF_TO_MANAGER"})
@@ -62,6 +79,9 @@ async def telegram_webhook(request: Request):
         reply = await ai_agent.generate_telegram_response(
             lead_info=lead_info,
             conversation_history=history,
+            role=role_id,
+            channel="telegram",
+            traffic_source=str(traffic_source),
         )
 
     await _append_history(chat_id, "assistant", reply)

@@ -1,7 +1,8 @@
 """
-Config-driven funnel actions.
+Config-driven funnel actions — with Supabase journey tracking.
 
-All hardcoded text is replaced by values from business config.
+Все action-функции логируют события в Supabase (non-fatal).
+Обратная совместимость с существующими вызовами сохранена.
 """
 
 import logging
@@ -15,13 +16,66 @@ from app.services import ai_agent, gmail_service, sheets_service
 logger = logging.getLogger(__name__)
 
 
-async def reply_with_interest(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
+async def _log_supabase_event(
+    lead: dict,
+    event_type: str,
+    channel: str,
+    from_stage: str,
+    to_stage: str,
+    role_used: str = "",
+    message_preview: str = "",
+    classification: str = "",
+    confidence: float = 0.0,
+) -> None:
+    """Записать событие в Supabase (non-fatal)."""
+    try:
+        from app.services import supabase_service
+        from app.config import settings
+        if not settings.SUPABASE_ENABLED:
+            return
+        await supabase_service.log_journey_event(
+            lead_email=lead.get("email", ""),
+            event_type=event_type,
+            channel=channel,
+            from_stage=from_stage,
+            to_stage=to_stage,
+            role_used=role_used,
+            message_preview=message_preview,
+            classification=classification,
+            confidence=confidence,
+        )
+        # Upsert lead в Supabase
+        await supabase_service.upsert_lead({
+            "email": lead.get("email", ""),
+            "name": lead.get("name", ""),
+            "company": lead.get("company", ""),
+            "stage": to_stage,
+            "source_channel": lead.get("source_channel", channel),
+            "traffic_source": lead.get("traffic_source", "unknown"),
+            "assigned_role": role_used or "sales_manager",
+        })
+    except Exception as e:
+        logger.debug("Supabase log_supabase_event non-fatal error: %s", e)
+
+
+async def reply_with_interest(
+    lead: dict,
+    parsed_msg: dict,
+    thread_history: str,
+    exchange_count: int,
+    role: str = "sales_manager",
+    channel: str = "email",
+    traffic_source: str = "unknown",
+) -> None:
     """Reply to an interested client with a personalized response."""
     body = await ai_agent.generate_response(
         stage="INTERESTED",
         lead_info=lead,
         thread_history=thread_history,
         exchange_count=exchange_count,
+        role=role,
+        channel=channel,
+        traffic_source=traffic_source,
     )
     gmail_service.send_reply(
         to=parsed_msg["from"],
@@ -32,17 +86,32 @@ async def reply_with_interest(lead: dict, parsed_msg: dict, thread_history: str,
         references=parsed_msg["references"],
     )
     _update_lead_contact(lead)
+    await _log_supabase_event(
+        lead, "message_sent", channel,
+        from_stage=lead.get("stage", "NEW_REPLY"), to_stage="INTERESTED",
+        role_used=role, message_preview=body[:200],
+    )
 
 
-async def send_materials(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
+async def send_materials(
+    lead: dict,
+    parsed_msg: dict,
+    thread_history: str,
+    exchange_count: int,
+    role: str = "sales_manager",
+    channel: str = "email",
+    traffic_source: str = "unknown",
+) -> None:
     """Send materials/portfolio with a personalized cover message."""
     body = await ai_agent.generate_response(
         stage="MATERIALS_SENT",
         lead_info=lead,
         thread_history=thread_history,
         exchange_count=exchange_count,
+        role=role,
+        channel=channel,
+        traffic_source=traffic_source,
     )
-    # Get attachment from the target stage config
     attachment = get_stage_attachment("MATERIALS_SENT")
     gmail_service.send_reply(
         to=parsed_msg["from"],
@@ -54,15 +123,31 @@ async def send_materials(lead: dict, parsed_msg: dict, thread_history: str, exch
         attachment_path=attachment,
     )
     _update_lead_contact(lead)
+    await _log_supabase_event(
+        lead, "stage_change", channel,
+        from_stage=lead.get("stage", "INTERESTED"), to_stage="MATERIALS_SENT",
+        role_used=role, message_preview=body[:200],
+    )
 
 
-async def continue_discussion(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
+async def continue_discussion(
+    lead: dict,
+    parsed_msg: dict,
+    thread_history: str,
+    exchange_count: int,
+    role: str = "sales_manager",
+    channel: str = "email",
+    traffic_source: str = "unknown",
+) -> None:
     """Continue the discussion, potentially suggest Telegram."""
     body = await ai_agent.generate_response(
         stage="IN_DISCUSSION",
         lead_info=lead,
         thread_history=thread_history,
         exchange_count=exchange_count,
+        role=role,
+        channel=channel,
+        traffic_source=traffic_source,
     )
     gmail_service.send_reply(
         to=parsed_msg["from"],
@@ -73,9 +158,22 @@ async def continue_discussion(lead: dict, parsed_msg: dict, thread_history: str,
         references=parsed_msg["references"],
     )
     _update_lead_contact(lead)
+    await _log_supabase_event(
+        lead, "message_sent", channel,
+        from_stage=lead.get("stage", "IN_DISCUSSION"), to_stage="IN_DISCUSSION",
+        role_used=role, message_preview=body[:200],
+    )
 
 
-async def handoff_to_manager(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
+async def handoff_to_manager(
+    lead: dict,
+    parsed_msg: dict,
+    thread_history: str,
+    exchange_count: int,
+    role: str = "sales_manager",
+    channel: str = "email",
+    traffic_source: str = "unknown",
+) -> None:
     """Notify the manager and send a confirmation to the client."""
     from app.services import telegram_service
 
@@ -86,6 +184,9 @@ async def handoff_to_manager(lead: dict, parsed_msg: dict, thread_history: str, 
         lead_info=lead,
         thread_history=thread_history,
         exchange_count=exchange_count,
+        role=role,
+        channel=channel,
+        traffic_source=traffic_source,
     )
     gmail_service.send_reply(
         to=parsed_msg["from"],
@@ -96,9 +197,23 @@ async def handoff_to_manager(lead: dict, parsed_msg: dict, thread_history: str, 
         references=parsed_msg["references"],
     )
     _update_lead_contact(lead)
+    await _log_supabase_event(
+        lead, "handoff", channel,
+        from_stage=lead.get("stage", "IN_DISCUSSION"), to_stage="HANDOFF_TO_MANAGER",
+        role_used=role, message_preview=parsed_msg.get("body", "")[:200],
+        classification="READY_TO_ORDER",
+    )
 
 
-async def reply_not_interested(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
+async def reply_not_interested(
+    lead: dict,
+    parsed_msg: dict,
+    thread_history: str,
+    exchange_count: int,
+    role: str = "sales_manager",
+    channel: str = "email",
+    traffic_source: str = "unknown",
+) -> None:
     """Send a polite goodbye from config and archive the lead."""
     config = get_config()
     body = config.not_interested_reply.strip()
@@ -111,16 +226,32 @@ async def reply_not_interested(lead: dict, parsed_msg: dict, thread_history: str
         references=parsed_msg["references"],
     )
     _update_lead_contact(lead)
+    await _log_supabase_event(
+        lead, "stage_change", channel,
+        from_stage=lead.get("stage", "NEW_REPLY"), to_stage="NOT_INTERESTED",
+        role_used=role, classification="NOT_INTERESTED",
+    )
 
 
-async def ignore(lead: dict, parsed_msg: dict, thread_history: str, exchange_count: int) -> None:
+async def ignore(
+    lead: dict,
+    parsed_msg: dict,
+    thread_history: str,
+    exchange_count: int,
+    role: str = "sales_manager",
+    channel: str = "email",
+    traffic_source: str = "unknown",
+) -> None:
     """Do nothing for spam/out-of-office."""
     logger.info("Ignoring message from %s (spam/ooo)", parsed_msg["from"])
 
 
-async def send_follow_up(lead: dict) -> None:
+async def send_follow_up(
+    lead: dict,
+    role: str = "sales_manager",
+    channel: str = "email",
+) -> None:
     """Send a follow-up email to a stale lead."""
-    config = get_config()
     if not lead.get("thread_id"):
         logger.warning("No thread_id for lead %s, skipping follow-up", lead["email"])
         return
@@ -139,6 +270,8 @@ async def send_follow_up(lead: dict) -> None:
         lead_info=lead,
         thread_history=thread_history,
         exchange_count=exchange_count,
+        role=role,
+        channel=channel,
     )
 
     gmail_service.send_reply(
@@ -156,6 +289,11 @@ async def send_follow_up(lead: dict) -> None:
         "follow_up_count": str(follow_up_count),
     })
     logger.info("Sent follow-up #%d to %s", follow_up_count, lead["email"])
+    await _log_supabase_event(
+        lead, "follow_up", channel,
+        from_stage=lead.get("stage", "INTERESTED"), to_stage=lead.get("stage", "INTERESTED"),
+        role_used=role, message_preview=body[:200],
+    )
 
 
 def _update_lead_contact(lead: dict) -> None:

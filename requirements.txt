@@ -22,6 +22,10 @@ arq==0.26.1
 sentry-sdk[fastapi]==2.19.2
 prometheus-fastapi-instrumentator==7.0.2
 structlog==24.4.0
+# Telethon (MTProto — реальный аккаунт Telegram)
+telethon>=1.36.0
+# Supabase (real-time CRM + journey tracking)
+supabase>=2.7.0
 # Testing
 pytest==8.3.4
 pytest-asyncio==0.24.0

@@ -70,6 +70,28 @@ class Settings(BaseSettings):
     AVITO_POLL_INTERVAL: int = 60
     AVITO_FUNNEL_CONFIG_PATH: str = "configs/avito_worker_funnel.yaml"
 
+    # Telethon (MTProto — реальный аккаунт Telegram, не бот)
+    TELETHON_ENABLED: bool = False
+    TELETHON_API_ID: int = 0
+    TELETHON_API_HASH: str = ""
+    TELETHON_PHONE: str = ""
+    TELETHON_SESSION_PATH: str = "credentials/telegram.session"
+
+    # Green API (WhatsApp через реальный номер)
+    GREENAPI_ENABLED: bool = False
+    GREENAPI_INSTANCE_ID: str = ""
+    GREENAPI_TOKEN: str = ""
+    GREENAPI_WEBHOOK_TOKEN: str = ""  # для валидации входящих webhook
+
+    # Supabase (real-time CRM + journey tracking)
+    SUPABASE_ENABLED: bool = False
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+
+    # Roles
+    ROLES_CONFIG_PATH: str = "configs/roles"
+    DEFAULT_ROLE: str = "sales_manager"
+
     # Admin
     ADMIN_SECRET: str = ""  # Bearer token for admin endpoints
 

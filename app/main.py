@@ -10,7 +10,7 @@ from app.config import settings
 from app.config_loader import init_config
 from app.funnel.pipeline import load_transitions
 from app.middleware import APIRateLimitMiddleware, RequestIdMiddleware
-from app.routers import admin, analytics, avito_webhook, gmail_webhook, health, telegram_webhook
+from app.routers import admin, analytics, avito_webhook, gmail_webhook, health, telegram_webhook, whatsapp_webhook
 
 # ---- Structured logging ----
 structlog.configure(
@@ -66,6 +66,8 @@ app.include_router(admin.router)
 app.include_router(analytics.router)
 if settings.AVITO_ENABLED:
     app.include_router(avito_webhook.router)
+if settings.GREENAPI_ENABLED:
+    app.include_router(whatsapp_webhook.router, tags=["whatsapp"])
 
 
 @app.on_event("startup")
@@ -101,6 +103,22 @@ async def on_startup():
     from app.services.account_manager import load_accounts
     load_accounts()
 
+    # 4c. Load role configs
+    try:
+        from app.services.role_manager import role_manager
+        count = role_manager.load_all_roles(settings.ROLES_CONFIG_PATH)
+        logger.info("Loaded %d agent roles from %s", count, settings.ROLES_CONFIG_PATH)
+    except Exception as e:
+        logger.warning("Role configs load failed (non-fatal): %s", e)
+
+    # 4d. Init Supabase
+    if settings.SUPABASE_ENABLED and settings.SUPABASE_URL and settings.SUPABASE_KEY:
+        try:
+            from app.services import supabase_service
+            supabase_service.init(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+        except Exception as e:
+            logger.warning("Supabase init failed (non-fatal): %s", e)
+
     # 4b. Load Avito config (if enabled)
     if settings.AVITO_ENABLED:
         from app.funnel.avito_pipeline import load_avito_config
@@ -124,6 +142,25 @@ async def on_startup():
     except Exception as e:
         logger.error("Failed to set Telegram webhook: %s", e)
 
+    # 7. Start Telethon MTProto client (реальный аккаунт Telegram)
+    if settings.TELETHON_ENABLED:
+        try:
+            from app.services.telethon_service import telethon_service
+            from app.routers.telethon_handler import handle_telethon_message
+            telethon_service.register_message_handler(handle_telethon_message)
+            success = await telethon_service.start_client(
+                api_id=settings.TELETHON_API_ID,
+                api_hash=settings.TELETHON_API_HASH,
+                session_path=settings.TELETHON_SESSION_PATH,
+                phone=settings.TELETHON_PHONE,
+            )
+            if success:
+                logger.info("Telethon MTProto client started (real account)")
+            else:
+                logger.warning("Telethon client failed to start")
+        except Exception as e:
+            logger.warning("Telethon startup failed (non-fatal): %s", e)
+
 
 @app.on_event("shutdown")
 async def on_shutdown():
@@ -133,3 +170,10 @@ async def on_shutdown():
         await close_redis()
     except Exception:
         pass
+    # Остановить Telethon клиент
+    if settings.TELETHON_ENABLED:
+        try:
+            from app.services.telethon_service import telethon_service
+            await telethon_service.stop_client()
+        except Exception:
+            pass

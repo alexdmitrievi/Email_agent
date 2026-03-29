@@ -1,0 +1,39 @@
+# ============================================================
+# НОВЫЕ переменные окружения (добавить в .env)
+# ============================================================
+
+# --- Telethon MTProto (реальный аккаунт Telegram) ---
+# Получить на https://my.telegram.org → API development tools
+TELETHON_ENABLED=false
+TELETHON_API_ID=0
+TELETHON_API_HASH=
+TELETHON_PHONE=+7XXXXXXXXXX
+TELETHON_SESSION_PATH=credentials/telegram.session
+
+# После настройки запустить ОДИН РАЗ:
+#   python scripts/auth_telethon.py
+# Затем установить TELETHON_ENABLED=true и перезапустить агента
+
+# --- Green API (WhatsApp через реальный номер) ---
+# Зарегистрироваться на https://green-api.com
+# Создать инстанс, подключить номер телефона через QR-код
+# Settings → Notifications → Webhook URL = https://yourdomain.com/webhooks/whatsapp
+# Включить тип: incomingMessageReceived
+GREENAPI_ENABLED=false
+GREENAPI_INSTANCE_ID=
+GREENAPI_TOKEN=
+GREENAPI_WEBHOOK_TOKEN=   # опционально, для валидации входящих
+
+# --- Supabase (real-time CRM + journey tracking) ---
+# Создать проект на https://supabase.com
+# SQL Editor → вставить содержимое supabase_schema.sql
+# Settings → API → Project URL и anon/service_role key
+SUPABASE_ENABLED=false
+SUPABASE_URL=https://xxxxxx.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# --- Роли агента ---
+# Директория с YAML-конфигами ролей (не менять если используете стандартные)
+ROLES_CONFIG_PATH=configs/roles
+DEFAULT_ROLE=sales_manager
+# Доступные роли: sales_manager | recruiter | consultant | support_agent

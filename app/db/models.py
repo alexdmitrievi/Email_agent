@@ -42,6 +42,13 @@ class Lead(Base):
     company_size = Column(String(50), default="")
     location = Column(String(255), default="")
 
+    # Multichannel & role tracking
+    source_channel = Column(String(30), default="email")    # email/telegram/telegram_mtproto/whatsapp/avito
+    traffic_source = Column(String(50), default="unknown")  # cold_email/organic/avito_listing/referred
+    assigned_role = Column(String(50), default="sales_manager")  # sales_manager/recruiter/consultant/support
+    lead_score = Column(Integer, default=0)                 # 0-100 автоматически
+    whatsapp_number = Column(String(30), default="")
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_contact_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -67,6 +74,10 @@ class Message(Base):
 
     # A/B testing
     ab_variant = Column(String(10), default="")  # "A" or "B"
+
+    # Role & traffic context
+    role_used = Column(String(50), default="")
+    traffic_source = Column(String(50), default="")
 
     # Attachment handling
     has_attachment = Column(Boolean, default=False)

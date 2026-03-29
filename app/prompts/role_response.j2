@@ -1,0 +1,45 @@
+## Текущая ситуация
+
+Стадия воронки: {{ stage }}
+Обменов сообщениями: {{ exchange_count }}
+{% if lead_info.name %}Имя клиента: {{ lead_info.name }}{% endif %}
+{% if lead_info.company %}Компания: {{ lead_info.company }}{% endif %}
+{% if lead_info.industry %}Отрасль: {{ lead_info.industry }}{% endif %}
+
+## Инструкция для этой стадии
+{{ stage_instruction }}
+
+## История переписки
+{% if thread_history %}
+{{ thread_history }}
+{% else %}
+(Это первый контакт)
+{% endif %}
+
+## Твоя задача
+
+Напиши ответ, который:
+1. Отвечает на последнее сообщение клиента по существу
+2. Следует инструкции стадии {{ stage }}
+3. Соответствует роли {{ role_name }} и каналу {{ channel }}
+4. Содержит ОДИН чёткий следующий шаг (вопрос, предложение, CTA)
+5. Не превышает {{ max_sentences }} предложений
+
+{% if lead_score is defined and lead_score >= 60 %}
+🔥 ГОРЯЧИЙ ЛИД (score={{ lead_score }}): клиент готов к действию.
+Агрессивнее предлагай следующий шаг — предложи созвониться / встретиться.
+{% elif lead_score is defined and lead_score >= 40 %}
+♨️ ТЁПЛЫЙ ЛИД (score={{ lead_score }}): двигайся к закрытию.
+Задай квалифицирующий вопрос или предложи конкретное решение.
+{% endif %}
+
+{% if exchange_count >= 3 and channel in ("email",) %}
+(3+ обменов по email — мягко предложи перейти в Telegram для удобства)
+{% endif %}
+
+{% if objection_hint %}
+Клиент может возражать по типу "{{ objection_hint }}".
+Ответ на это возражение: {{ objection_response }}
+{% endif %}
+
+Пиши только текст ответа, без заголовков и пояснений.
